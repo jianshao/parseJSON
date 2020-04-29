@@ -178,10 +178,11 @@ func parseValueArray(buf []byte, s int) (*jsonValue, int, error) {	var commonTyp
 	arrayValue := &jsonValueArray{
 		array:result,
 	}
-	s++
+	s = s + 1
 
-	for {
-		s = skipInvalidChars(buf, s)
+	for s < len(buf) {
+		pos := skipInvalidChars(buf, s)
+		s = pos
 		value, s, err := parseValue(buf, s)
 		if err != nil {
 			return nil, -1, err
