@@ -1,28 +1,4 @@
 {
-	"1int":0x123f
-
-	,
-	"1string" 
-	: 
-	 "string"    ,
-	"1object":	
-
-
-	{
-		"2int1": 	01234 ,
-		"2string1
-" : "1234" ,
-		"2object1" : {
-			"3int1":333
-		},
-		"2object2":{
-			"22int1":2333,
-			"23int2":4444,
-			"23int3":5555,
-			"string":"23 /.,mb,np	!~ +-_'string
-"
-		}
-	},
 	"array":[
 		"123",
 		"111",
