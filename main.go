@@ -1,8 +1,8 @@
 package main
 
 import (
+	"./parse"
 	"fmt"
-	"github.com/jianshao/parseJSON/parse"
 )
 
 func main()  {
