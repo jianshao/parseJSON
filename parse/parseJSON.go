@@ -46,7 +46,7 @@ func (p *ParseJSON)LoadFromFile(filePath string) error {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 1024)
+	buf := make([]byte, 0)
 	if _, err := file.Read(buf); err != nil {
 		return fmt.Errorf("read file(%s) failed: %s", filePath, err)
 	}
@@ -87,3 +87,4 @@ func (p *ParseJSON)GetIntValue(path string) (int, error) {
 	}
 	return int(*node.Value.(*jsonValueInt)), nil
 }
+

@@ -1,4 +1,4 @@
-package parseJSON
+package parse
 
 import "testing"
 

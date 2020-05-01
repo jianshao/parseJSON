@@ -1,6 +1,7 @@
 package parse
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -24,7 +25,7 @@ type tests struct {
 
 var test = []tests{
 	{
-		b:base{file:"./test/valid/test.json", err:nil},
+		b:base{file:"../test/valid/test.json", err:nil},
 		instances:[]testInstance{
 			{"1int", 0x123f, nil},
 			{"1string", "string", nil},
@@ -33,6 +34,7 @@ var test = []tests{
 			{"1object.2string1\n", "1234", nil},
 			{"1object.2object1.3int1", 333, nil},
 			{"1object.2object2.string", "23 /.,mb,np	!~ +-_'string\n", nil},
+			{"array.1", "123", nil},
 		},
 	},
 }
@@ -45,7 +47,7 @@ func TestLoad(t *testing.T)  {
 
 		err := json.Load()
 		AssertEqual(t, err, test[i].b.err, "")
-		//jsonPrint(json.root, t)
+		jsonPrint(json.root, t)
 
 		instances := test[i].instances
 		for j := 0; j < len(instances); j++ {
@@ -63,6 +65,28 @@ func TestLoad(t *testing.T)  {
 	}
 }
 
+func PrintJsonValueArray(a *jsonValueArray, t *testing.T, path string)  {
+	if a.Type == Int {
+		for i := 0; i < len(a.array); i++ {
+			value := int(*a.array[i].Value.(*jsonValueInt))
+			t.Errorf("key: %s.%d int: %d", path, i, value)
+		}
+	} else if a.Type == String {
+		for i := 0; i < len(a.array); i++ {
+			value := string(*a.array[i].Value.(*jsonValueString))
+			t.Errorf("key: %s.%d string: %s", path, i, value)
+		}
+	} else if a.Type == Object {
+		for i := 0; i < len(a.array); i++ {
+			PrintJsonValue(a.array[i], t, fmt.Sprintf("%s.%d", path, i))
+		}
+	} else if a.Type == Array {
+		for i := 0; i < len(a.array); i++ {
+			PrintJsonValueArray(a.array[i].Value.(*jsonValueArray), t, fmt.Sprintf("%s.%d", path, i))
+		}
+	}
+}
+
 func PrintJsonValue(json *jsonValue, t *testing.T, path string)  {
 	fields := json.Value.(*jsonValueObject).fields
 	for k, v := range fields {
@@ -75,6 +99,11 @@ func PrintJsonValue(json *jsonValue, t *testing.T, path string)  {
 			t.Errorf("key: %s string: %s", path+key, value)
 		} else if v.Type == Object {
 			PrintJsonValue(v, t, path + key + ".")
+		} else if v.Type == Array {
+			array := v.Value.(*jsonValueArray)
+			for i := 0; i < len(array.array); i++ {
+				PrintJsonValueArray(array, t, fmt.Sprintf("%s.%d", path, i))
+			}
 		}
 	}
 }

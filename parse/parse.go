@@ -20,13 +20,78 @@ const (
 	ValueArrayEndChar = ']'
 )
 
+type Value interface {
+	Print()
+	Get() interface{}
+	Parse([]byte, int) (*jsonValue, int, error)
+}
+
 type jsonValueInt int64
+
+func (i *jsonValueInt)Print()  {
+	fmt.Println(int(*i))
+}
+
+func (i *jsonValueInt)Get() interface{} {
+	return int64(*i)
+}
+
+func (i *jsonValueInt)Parse(buf []byte, s int) (*jsonValue, int, error) {
+	base := 10
+	if buf[s] == '0' {
+		if len(buf) - 1 == s {
+			return buildJsonValue(Int, 0), s+1, nil
+		} else if buf[s+1] == 'x' {
+			s = s + 2
+			base = 16
+		}
+	}
+
+	value := 0
+	for ; s < len(buf); s++ {
+		v := getIntFromByte(buf[s], base)
+		if v != -1 {
+			value = value * base + v
+		} else {
+			break
+		}
+	}
+
+	/* 不管是遇到逗号还是最终结束，都是可以接受的结果 */
+	return buildJsonValue(Int, value), s, nil
+}
+
 type jsonValueString string
+
+func (s *jsonValueString)Print()  {
+	fmt.Println(string(*s))
+}
+
+func (s *jsonValueString)Get() interface{} {
+	return string(*s)
+}
+
+func (st *jsonValueString)Parse(buf []byte, s int) (*jsonValue, int, error)  {
+
+	e := s + 1
+	for ; e < len(buf); e++ {
+		if buf[e] == ValueStringEndChar {
+			break
+		}
+	}
+	if e == len(buf) {
+		return nil, -1, fmt.Errorf("expect \" at end")
+	}
+
+	return buildJsonValue(String, buf[s+1:e]), e+1, nil
+}
+
 type jsonValueObject struct {
 	fields map[jsonKey]*jsonValue
 }
 
 type jsonValueArray struct {
+	Type  int
 	array []*jsonValue
 }
 
@@ -173,38 +238,39 @@ func parseValueObject(buf []byte, s int) (*jsonValue, int, error) {
 	return buildJsonValue(Object, object), s+1, nil
 }
 
-func parseValueArray(buf []byte, s int) (*jsonValue, int, error) {	var commonType = InvalidType
-	result := make([]*jsonValue, 0)
+func parseValueArray(buf []byte, start int) (*jsonValue, int, error) {
 	arrayValue := &jsonValueArray{
-		array:result,
+		Type:InvalidType,
+		array:make([]*jsonValue, 0),
 	}
-	s = s + 1
 
-	for s < len(buf) {
-		pos := skipInvalidChars(buf, s)
-		s = pos
-		value, s, err := parseValue(buf, s)
+	pos := start + 1
+	var value *jsonValue
+	var err error
+	for pos < len(buf) {
+		pos = skipInvalidChars(buf, pos)
+		value, pos, err = parseValue(buf, pos)
 		if err != nil {
 			return nil, -1, err
 		}
-		if commonType == InvalidType {
-			commonType = value.Type
-		} else if commonType != value.Type {
-			return nil, -1, fmt.Errorf("invalid type")
+		if arrayValue.Type == InvalidType {
+			arrayValue.Type = value.Type
+		} else if arrayValue.Type != value.Type {
+			return nil, -1, fmt.Errorf("element in array type is %d, but fount %d", arrayValue.Type, value.Type)
 		}
-		result = append(result, value)
-		fmt.Println("array value: ", value)
+		arrayValue.array = append(arrayValue.array, value)
 
-		s = skipInvalidChars(buf, s)
-		if buf[s] == ValueArrayEndChar {
+		pos = skipInvalidChars(buf, pos)
+		if buf[pos] == ValueArrayEndChar {
+			start = pos + 1
 			break
-		} else if buf[s] != ValueEndSep {
-			return nil, -1, fmt.Errorf("expect \",\" at end, but not found")
+		} else if buf[pos] == ValueEndSep {
+			pos = pos + 1
 		} else {
-			s++
+			return nil, -1, fmt.Errorf("expect \",\" at end, but not found")
 		}
 	}
-	return buildJsonValue(Array, arrayValue), s+1, nil
+	return buildJsonValue(Array, arrayValue), start, nil
 }
 
 func parseValue(buf []byte, s int) (*jsonValue, int, error) {
