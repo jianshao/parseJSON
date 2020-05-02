@@ -10,7 +10,7 @@ func (s *jsonValueString)parse(buf []byte, start int) (int, error) {
 
 	start = skipInvalidChars(buf, start)
 	if buf[start] != ValueStringStartChar {
-		return -1, nil
+		return -1, fmt.Errorf("expect \" but %s", string(buf[start]))
 	}
 
 	for e := start + 1; e < len(buf); e++ {
