@@ -8,19 +8,19 @@ import (
 
 const Delimiter = "."
 
-type ParseJSON struct {
+type JSON struct {
 	filePath string
-	root *jsonValue
+	root Value
 }
 
-func NewParseJSON(filePath string) *ParseJSON {
-	return &ParseJSON{
+func NewParseJSON(filePath string) *JSON {
+	return &JSON{
 		filePath:filePath,
-		root:new(jsonValue),
+		root:&jsonValueObject{},
 	}
 }
 
-func (p *ParseJSON)Load() error {
+func (p *JSON)Load() error {
 	if 0 == len(p.filePath) {
 		return fmt.Errorf("file can not be null")
 	}
@@ -39,7 +39,7 @@ func (p *ParseJSON)Load() error {
 	return p.LoadFromString(buf)
 }
 
-func (p *ParseJSON)LoadFromFile(filePath string) error {
+func (p *JSON)LoadFromFile(filePath string) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("open file(%s) failed: %s", filePath, err)
@@ -57,34 +57,50 @@ func (p *ParseJSON)LoadFromFile(filePath string) error {
 	return nil
 }
 
-func (p *ParseJSON)LoadFromString(buf []byte) error {
+func (p *JSON)LoadFromString(buf []byte) error {
+	if p.root == nil {
+		p.root = &jsonValueObject{}
+	}
+	if _, err := p.root.parse(buf, 0); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *JSON)getNode(path string) (Value, error) {
 	var err error
-	p.root, err = parse(buf)
-	return err
+	s := strings.Split(path, Delimiter)
+	node := p.root
+	for i := 0; i < len(s); i++ {
+		if node, err = node.get(s[i]); err != nil {
+			return nil, err
+		}
+	}
+
+	return node, nil
 }
 
-
-func (p* ParseJSON)GetStringValue(path string) (string, error) {
-	s := strings.Split(path, Delimiter)
-	node, err := p.root.Get(s)
-	if err != nil {
+func (p *JSON)GetStringValue(path string) (string, error) {
+	if node, err := p.getNode(path); err != nil {
 		return "", err
+	} else {
+		if node.getType() == String {
+			return string(node.(*jsonValueString).v), nil
+		} else {
+			return "", fmt.Errorf("invalid type")
+		}
 	}
-	if node.Type != String {
-		return "", fmt.Errorf("invalid type")
-	}
-	return string(*node.Value.(*jsonValueString)), nil
 }
 
-func (p *ParseJSON)GetIntValue(path string) (int, error) {
-	s := strings.Split(path, Delimiter)
-	node, err := p.root.Get(s)
-	if err != nil {
-		return 0, err
+func (p *JSON)GetIntValue(path string) (int, error) {
+	if node, err := p.getNode(path); err == nil {
+		if node.getType() == Int {
+			return int(node.(*jsonValueInt).v), nil
+		} else {
+			return -1, fmt.Errorf("invalid type")
+		}
+	} else {
+		return -1, err
 	}
-	if node.Type != Int {
-		return 0, fmt.Errorf("invalid type")
-	}
-	return int(*node.Value.(*jsonValueInt)), nil
 }
 

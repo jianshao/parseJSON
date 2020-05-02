@@ -1,7 +1,7 @@
 package parse
 
 import (
-	"fmt"
+	//"fmt"
 	"reflect"
 	"testing"
 )
@@ -35,6 +35,8 @@ var test = []tests{
 			{"1object.2object1.3int1", 333, nil},
 			{"1object.2object2.string", "23 /.,mb,np	!~ +-_'string\n", nil},
 			{"array.1", "123", nil},
+			{"intarray.4", 0x444, nil},
+			{"arrayarray.3.1.a.3", "333", nil},
 		},
 	},
 }
@@ -47,7 +49,7 @@ func TestLoad(t *testing.T)  {
 
 		err := json.Load()
 		AssertEqual(t, err, test[i].b.err, "")
-		jsonPrint(json.root, t)
+		//jsonPrint(json.root, t)
 
 		instances := test[i].instances
 		for j := 0; j < len(instances); j++ {
@@ -64,7 +66,7 @@ func TestLoad(t *testing.T)  {
 		}
 	}
 }
-
+/*
 func PrintJsonValueArray(a *jsonValueArray, t *testing.T, path string)  {
 	if a.Type == Int {
 		for i := 0; i < len(a.array); i++ {
@@ -113,3 +115,4 @@ func jsonPrint(json *jsonValue, t *testing.T)  {
 
 	PrintJsonValue(json, t, "")
 }
+*/
